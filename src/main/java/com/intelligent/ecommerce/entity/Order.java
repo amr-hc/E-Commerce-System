@@ -1,5 +1,6 @@
 package com.intelligent.ecommerce.entity;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,14 +21,20 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 
 @Entity
 @Table(
@@ -47,21 +54,32 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long customerId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "customer_id", nullable = false)
+    private User customer;
 
-    private Double totalAmount;
+    @NotNull(message = "Total amount is required")
+    @DecimalMin(value = "0.00", inclusive = false, message = "Total amount must be greater than zero")
+    @Digits(integer = 12, fraction = 2, message = "Total amount must have up to 12 digits and 2 decimals")
+    @Column(name = "total_amount", nullable = false, precision = 14, scale = 2)
+    private BigDecimal totalAmount;
 
+    @NotNull(message = "Status is required")
     @Enumerated(EnumType.STRING)
-    @Column(length = 20, nullable = false) 
+    @Column(length = 20, nullable = false)
     private OrderStatus status;
 
     @CreatedDate
+    @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
-    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch= FetchType.LAZY)
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Valid
     private Payment payment;
 
     @Builder.Default
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
+    @Valid
+    @Size(min = 1, message = "Order must contain at least one item")
     private List<OrderItem> items = new ArrayList<>();
 }

@@ -18,6 +18,7 @@ import com.intelligent.ecommerce.dto.order.request.CreateOrderItemRequest;
 import com.intelligent.ecommerce.entity.Order;
 import com.intelligent.ecommerce.entity.Payment;
 import com.intelligent.ecommerce.entity.Product;
+import com.intelligent.ecommerce.entity.User;
 import com.intelligent.ecommerce.enums.OrderStatus;
 import com.intelligent.ecommerce.enums.PaymentMethod;
 import com.intelligent.ecommerce.event.OrderCreatedEvent;
@@ -25,6 +26,7 @@ import com.intelligent.ecommerce.exception.InsufficientStockException;
 import com.intelligent.ecommerce.repository.OrderRepository;
 import com.intelligent.ecommerce.repository.PaymentRepository;
 import com.intelligent.ecommerce.repository.ProductRepository;
+import com.intelligent.ecommerce.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
@@ -32,6 +34,7 @@ class OrderServiceTest {
     @Mock private ProductRepository productRepository;
     @Mock private OrderRepository orderRepository;
     @Mock private PaymentRepository paymentRepository;
+    @Mock private UserRepository userRepository;
     @Mock private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks private OrderService orderService;
@@ -48,12 +51,21 @@ class OrderServiceTest {
 
         Product product = Product.builder()
             .id(101L)
-            .price(50.0)
+            .price(java.math.BigDecimal.valueOf(50.0))
             .stockQuantity(10)
+            .build();
+
+        User customer = User.builder()
+            .id(customerId)
+            .email("test@test.com")
+            .username("testuser")
             .build();
 
         when(productRepository.findAllForUpdateByIdIn(List.of(101L)))
             .thenReturn(List.of(product));
+
+        when(userRepository.getReferenceById(customerId))
+            .thenReturn(customer);
 
         when(orderRepository.save(any(Order.class)))
             .thenAnswer(invocation -> {
@@ -66,12 +78,13 @@ class OrderServiceTest {
         Order result = orderService.createOrder(customerId, items, PaymentMethod.CARD);
 
         // Assert
-        assertThat(result.getCustomerId()).isEqualTo(customerId);
-        assertThat(result.getTotalAmount()).isEqualTo(100.0);
+        assertThat(result.getCustomer().getId()).isEqualTo(customerId);
+        assertThat(result.getTotalAmount()).isEqualTo(java.math.BigDecimal.valueOf(100.0));
         assertThat(result.getItems()).hasSize(1);
         assertThat(result.getStatus()).isEqualTo(OrderStatus.CREATED);
 
         verify(productRepository).findAllForUpdateByIdIn(List.of(101L));
+        verify(userRepository).getReferenceById(customerId);
         verify(orderRepository).save(any(Order.class));
         verify(paymentRepository).save(any(Payment.class));
         verify(eventPublisher).publishEvent(any(OrderCreatedEvent.class));
@@ -97,7 +110,7 @@ class OrderServiceTest {
 
         Product product = Product.builder()
             .id(101L)
-            .price(20.0)
+            .price(java.math.BigDecimal.valueOf(20.0))
             .stockQuantity(3)
             .build();
 

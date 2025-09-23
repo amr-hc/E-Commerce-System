@@ -15,9 +15,8 @@ import com.intelligent.ecommerce.repository.projection.OrderReportRow;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
-    @Override
     @EntityGraph(attributePaths = {"payment", "items", "items.product"})
-    Page<Order> findAll(Pageable pageable);
+    Page<Order> findAllByCustomerId(Long customerId, Pageable pageable);
 
     @Query(
         value = "SELECT * FROM orders o WHERE o.total_amount > 1000",

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import com.intelligent.ecommerce.entity.User;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Integer>
+public interface UserRepository extends JpaRepository<User, Long>
 {
 
     @Query("select e from User e where e.email = :email")

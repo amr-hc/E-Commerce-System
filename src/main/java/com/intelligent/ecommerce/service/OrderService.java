@@ -1,5 +1,6 @@
 package com.intelligent.ecommerce.service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,7 @@ import com.intelligent.ecommerce.entity.Order;
 import com.intelligent.ecommerce.entity.OrderItem;
 import com.intelligent.ecommerce.entity.Payment;
 import com.intelligent.ecommerce.entity.Product;
+import com.intelligent.ecommerce.entity.User;
 import com.intelligent.ecommerce.enums.OrderStatus;
 import com.intelligent.ecommerce.enums.PaymentMethod;
 import com.intelligent.ecommerce.event.OrderCreatedEvent;
@@ -22,6 +24,7 @@ import com.intelligent.ecommerce.exception.InsufficientStockException;
 import com.intelligent.ecommerce.repository.OrderRepository;
 import com.intelligent.ecommerce.repository.PaymentRepository;
 import com.intelligent.ecommerce.repository.ProductRepository;
+import com.intelligent.ecommerce.repository.UserRepository;
 import com.intelligent.ecommerce.repository.projection.OrderReportRow;
 
 import lombok.RequiredArgsConstructor;
@@ -33,10 +36,11 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
+    private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    public Page<Order> listOrders(Pageable pageable) {
-        return orderRepository.findAll(pageable);
+    public Page<Order> listOrders(Long customerId, Pageable pageable) {
+        return orderRepository.findAllByCustomerId(customerId, pageable);
     }
 
     public List<OrderReportRow> findHighValueOrders() {
@@ -56,10 +60,12 @@ public class OrderService {
         Map<Long, Product> productMap = products.stream()
             .collect(java.util.stream.Collectors.toMap(Product::getId, p -> p));
 
-        double totalAmount = 0.0;
+        BigDecimal totalAmount = BigDecimal.ZERO;
+
+        User customer = userRepository.getReferenceById(customerId);
 
         Order order = Order.builder()
-            .customerId(customerId)
+            .customer(customer)
             .status(OrderStatus.CREATED)
             .build();
 
@@ -76,8 +82,8 @@ public class OrderService {
 
             product.setStockQuantity(product.getStockQuantity() - reqItem.getQuantity());
 
-            double linePrice = product.getPrice() * reqItem.getQuantity();
-            totalAmount += linePrice;
+            BigDecimal linePrice = product.getPrice().multiply(BigDecimal.valueOf(reqItem.getQuantity()));
+            totalAmount = totalAmount.add(linePrice);
 
             OrderItem oi = OrderItem.builder()
                 .product(product)

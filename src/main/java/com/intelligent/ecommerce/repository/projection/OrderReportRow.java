@@ -1,8 +1,12 @@
 package com.intelligent.ecommerce.repository.projection;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+
 public interface OrderReportRow {
     Long getId();
     Long getCustomerId();
-    Double getTotalAmount();
+    BigDecimal getTotalAmount();
     String getStatus();
-    java.sql.Timestamp getCreatedAt();
+    Instant getCreatedAt();
 }

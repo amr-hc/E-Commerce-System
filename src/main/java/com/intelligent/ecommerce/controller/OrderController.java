@@ -40,7 +40,7 @@ public class OrderController {
     public ResponseEntity<ApiResponse<PaginatedResponse<OrderResponse>>> listOrders(
         @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        Page<Order> page = orderService.listOrders(pageable);
+        Page<Order> page = orderService.listOrders(authUtils.getId(), pageable);
         Page<OrderResponse> dtoPage = page.map(orderMapper::toDto);
         PaginatedResponse<OrderResponse> paginated = PaginatedResponse.fromPage(dtoPage);
         return ResponseEntity.ok(ApiResponse.success(paginated));
