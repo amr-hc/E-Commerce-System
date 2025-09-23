@@ -1,10 +1,9 @@
 package com.intelligent.ecommerce.integration;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -175,7 +174,7 @@ class ProductRepositoryIntegrationTest {
         // Assert
         assertThat(result).isPresent();
         assertThat(result.get().getName()).isEqualTo("Mouse");
-        assertThat(result.get().getPrice()).isEqualTo(25.0);
+        assertThat(result.get().getPrice()).isEqualByComparingTo(java.math.BigDecimal.valueOf(25.0));
         assertThat(result.get().getStockQuantity()).isEqualTo(50);
     }
 

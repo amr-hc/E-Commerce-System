@@ -16,7 +16,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.intelligent.ecommerce.dto.order.request.CreateOrderItemRequest;
 import com.intelligent.ecommerce.entity.Order;
@@ -38,7 +37,6 @@ import com.intelligent.ecommerce.service.OrderService;
 @SpringBootTest
 @ActiveProfiles("test")
 @RecordApplicationEvents
-@Transactional
 class OrderServiceIntegrationTest {
 
     @Autowired
@@ -129,22 +127,24 @@ class OrderServiceIntegrationTest {
         assertThat(result.getId()).isNotNull();
         assertThat(result.getCustomer().getId()).isEqualTo(customer1.getId());
         assertThat(result.getStatus()).isEqualTo(OrderStatus.CREATED);
-        assertThat(result.getTotalAmount()).isEqualTo(java.math.BigDecimal.valueOf(1500.0 * 2 + 25.0 * 3 + 75.0 * 1)); // 3150.0
+        assertThat(result.getTotalAmount()).isEqualByComparingTo(java.math.BigDecimal.valueOf(1500.0 * 2 + 25.0 * 3 + 75.0 * 1)); // 3150.0
         assertThat(result.getItems()).hasSize(3);
 
         // Verify order items
         List<OrderItem> orderItems = result.getItems();
         assertThat(orderItems).extracting(OrderItem::getQuantity).containsExactlyInAnyOrder(2, 3, 1);
-        assertThat(orderItems).extracting(OrderItem::getPrice).containsExactlyInAnyOrder(
-            java.math.BigDecimal.valueOf(3000.0), 
-            java.math.BigDecimal.valueOf(75.0), 
-            java.math.BigDecimal.valueOf(75.0)
-        );
+        assertThat(orderItems).extracting(OrderItem::getPrice)
+            .usingComparatorForType(java.math.BigDecimal::compareTo, java.math.BigDecimal.class)
+            .containsExactlyInAnyOrder(
+                java.math.BigDecimal.valueOf(3000.0), 
+                java.math.BigDecimal.valueOf(75.0), 
+                java.math.BigDecimal.valueOf(75.0)
+            );
 
         // Verify payment was created
         Payment payment = paymentRepository.findByOrderId(result.getId()).orElse(null);
         assertThat(payment).isNotNull();
-        assertThat(payment.getAmount()).isEqualTo(java.math.BigDecimal.valueOf(3150.0));
+        assertThat(payment.getAmount()).isEqualByComparingTo(java.math.BigDecimal.valueOf(3150.0));
         assertThat(payment.getStatus()).isEqualTo("PENDING");
         assertThat(payment.getPaymentMethod()).isEqualTo(PaymentMethod.CARD);
 
@@ -294,7 +294,9 @@ class OrderServiceIntegrationTest {
 
         // Assert
         assertThat(result).hasSize(2);
-        assertThat(result).extracting(OrderReportRow::getTotalAmount).containsExactlyInAnyOrder(
+        assertThat(result).extracting(OrderReportRow::getTotalAmount)
+                .usingComparatorForType(java.math.BigDecimal::compareTo, java.math.BigDecimal.class)
+                .containsExactlyInAnyOrder(
             java.math.BigDecimal.valueOf(1500.0), 
             java.math.BigDecimal.valueOf(1525.0)
         );

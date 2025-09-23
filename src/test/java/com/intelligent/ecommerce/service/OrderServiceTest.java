@@ -16,7 +16,6 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import com.intelligent.ecommerce.dto.order.request.CreateOrderItemRequest;
 import com.intelligent.ecommerce.entity.Order;
-import com.intelligent.ecommerce.entity.Payment;
 import com.intelligent.ecommerce.entity.Product;
 import com.intelligent.ecommerce.entity.User;
 import com.intelligent.ecommerce.enums.OrderStatus;
@@ -86,7 +85,6 @@ class OrderServiceTest {
         verify(productRepository).findAllForUpdateByIdIn(List.of(101L));
         verify(userRepository).getReferenceById(customerId);
         verify(orderRepository).save(any(Order.class));
-        verify(paymentRepository).save(any(Payment.class));
         verify(eventPublisher).publishEvent(any(OrderCreatedEvent.class));
     }
 

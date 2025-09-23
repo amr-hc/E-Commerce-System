@@ -109,6 +109,7 @@ class OrderRepositoryIntegrationTest {
         // Assert
         assertThat(result).hasSize(3);
         assertThat(result).extracting(OrderReportRow::getTotalAmount)
+                .usingComparatorForType(java.math.BigDecimal::compareTo, java.math.BigDecimal.class)
                 .containsExactlyInAnyOrder(
                     java.math.BigDecimal.valueOf(1200.0), 
                     java.math.BigDecimal.valueOf(1500.0), 

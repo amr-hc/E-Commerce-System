@@ -1,23 +1,23 @@
 package com.intelligent.ecommerce.integration;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.intelligent.ecommerce.dto.order.request.CreateOrderItemRequest;
 import com.intelligent.ecommerce.entity.Order;
 import com.intelligent.ecommerce.entity.Payment;
 import com.intelligent.ecommerce.entity.Product;
+import com.intelligent.ecommerce.entity.User;
 import com.intelligent.ecommerce.enums.OrderStatus;
 import com.intelligent.ecommerce.enums.PaymentMethod;
 import com.intelligent.ecommerce.event.OrderCreatedEvent;
@@ -25,12 +25,12 @@ import com.intelligent.ecommerce.exception.InsufficientStockException;
 import com.intelligent.ecommerce.repository.OrderRepository;
 import com.intelligent.ecommerce.repository.PaymentRepository;
 import com.intelligent.ecommerce.repository.ProductRepository;
+import com.intelligent.ecommerce.repository.UserRepository;
 import com.intelligent.ecommerce.service.OrderService;
 
 @SpringBootTest
 @ActiveProfiles("test")
 @RecordApplicationEvents
-@Transactional
 class TransactionRollbackIntegrationTest {
 
     @Autowired
@@ -46,10 +46,14 @@ class TransactionRollbackIntegrationTest {
     private PaymentRepository paymentRepository;
 
     @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
     private ApplicationEvents applicationEvents;
 
     private Product product1;
     private Product product2;
+    private User testUser;
 
     @BeforeEach
     void setUp() {
@@ -57,6 +61,14 @@ class TransactionRollbackIntegrationTest {
         paymentRepository.deleteAll();
         orderRepository.deleteAll();
         productRepository.deleteAll();
+        userRepository.deleteAll();
+
+        // Create test user
+        testUser = User.builder()
+                .email("test@example.com")
+                .username("testuser")
+                .build();
+        testUser = userRepository.save(testUser);
 
         // Create test products
         product1 = Product.builder()
@@ -77,7 +89,7 @@ class TransactionRollbackIntegrationTest {
     @Test
     void createOrder_shouldRollbackTransaction_whenInsufficientStockException() {
         // Arrange
-        Long customerId = 1L;
+        Long customerId = testUser.getId();
         List<CreateOrderItemRequest> items = List.of(
                 new CreateOrderItemRequest(product1.getId(), 3), // Valid quantity
                 new CreateOrderItemRequest(product2.getId(), 5)  // Invalid quantity (stock: 3)
@@ -106,7 +118,7 @@ class TransactionRollbackIntegrationTest {
     @Test
     void createOrder_shouldRollbackTransaction_whenProductNotFound() {
         // Arrange
-        Long customerId = 1L;
+        Long customerId = testUser.getId();
         List<CreateOrderItemRequest> items = List.of(
                 new CreateOrderItemRequest(product1.getId(), 2), // Valid product
                 new CreateOrderItemRequest(999L, 1)             // Invalid product
@@ -132,7 +144,7 @@ class TransactionRollbackIntegrationTest {
     @Test
     void createOrder_shouldRollbackTransaction_whenMultipleProductsHaveInsufficientStock() {
         // Arrange
-        Long customerId = 1L;
+        Long customerId = testUser.getId();
         List<CreateOrderItemRequest> items = List.of(
                 new CreateOrderItemRequest(product1.getId(), 10), // Insufficient stock (stock: 5)
                 new CreateOrderItemRequest(product2.getId(), 5)   // Insufficient stock (stock: 3)
@@ -159,9 +171,10 @@ class TransactionRollbackIntegrationTest {
     }
 
     @Test
+    @Rollback(false)
     void createOrder_shouldSucceed_whenAllProductsHaveSufficientStock() {
         // Arrange
-        Long customerId = 1L;
+        Long customerId = testUser.getId();
         List<CreateOrderItemRequest> items = List.of(
                 new CreateOrderItemRequest(product1.getId(), 2), // Valid quantity
                 new CreateOrderItemRequest(product2.getId(), 1)  // Valid quantity
@@ -174,7 +187,7 @@ class TransactionRollbackIntegrationTest {
         assertThat(result).isNotNull();
         assertThat(result.getCustomer().getId()).isEqualTo(customerId);
         assertThat(result.getStatus()).isEqualTo(OrderStatus.CREATED);
-        assertThat(result.getTotalAmount()).isEqualTo(400.0); // 2 * 100 + 1 * 200
+        assertThat(result.getTotalAmount()).isEqualByComparingTo(java.math.BigDecimal.valueOf(400.0)); // 2 * 100 + 1 * 200
 
         // Verify order was created
         assertThat(orderRepository.count()).isEqualTo(1);
@@ -182,7 +195,7 @@ class TransactionRollbackIntegrationTest {
         // Verify payment was created
         Payment payment = paymentRepository.findByOrderId(result.getId()).orElseThrow();
         assertThat(payment).isNotNull();
-        assertThat(payment.getAmount()).isEqualTo(400.0);
+        assertThat(payment.getAmount()).isEqualByComparingTo(java.math.BigDecimal.valueOf(400.0));
 
         // Verify stock was updated
         Product updatedProduct1 = productRepository.findById(product1.getId()).orElseThrow();
@@ -198,13 +211,12 @@ class TransactionRollbackIntegrationTest {
     @Test
     void createOrder_shouldRollbackTransaction_whenEmptyItemList() {
         // Arrange
-        Long customerId = 1L;
+        Long customerId = testUser.getId();
         List<CreateOrderItemRequest> items = List.of();
 
         // Act & Assert
         assertThatThrownBy(() -> orderService.createOrder(customerId, items, PaymentMethod.CARD))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Product not found");
+                .isInstanceOf(jakarta.validation.ConstraintViolationException.class);
 
         // Verify complete rollback
         assertThat(orderRepository.count()).isZero();
@@ -217,7 +229,7 @@ class TransactionRollbackIntegrationTest {
     @Test
     void createOrder_shouldRollbackTransaction_whenNullItemList() {
         // Arrange
-        Long customerId = 1L;
+        Long customerId = testUser.getId();
         List<CreateOrderItemRequest> items = null;
 
         // Act & Assert
@@ -235,49 +247,36 @@ class TransactionRollbackIntegrationTest {
     @Test
     void createOrder_shouldRollbackTransaction_whenNegativeQuantity() {
         // Arrange
-        Long customerId = 1L;
+        Long customerId = testUser.getId();
         List<CreateOrderItemRequest> items = List.of(
                 new CreateOrderItemRequest(product1.getId(), -1) // Negative quantity
         );
 
         // Act & Assert
-        // Note: This might not throw an exception depending on validation rules
-        // If validation is in place, it should throw a validation exception
-        // For now, we'll test the behavior as implemented
-        try {
-            Order result = orderService.createOrder(customerId, items, PaymentMethod.CARD);
-            // If no exception is thrown, verify the behavior
-            assertThat(result).isNotNull();
-        } catch (Exception e) {
-            // If an exception is thrown, verify rollback
-            assertThat(orderRepository.count()).isZero();
-            assertThat(paymentRepository.count()).isZero();
-            assertThat(applicationEvents.stream(OrderCreatedEvent.class)).isEmpty();
-        }
+        assertThatThrownBy(() -> orderService.createOrder(customerId, items, PaymentMethod.CARD))
+                .isInstanceOf(jakarta.validation.ConstraintViolationException.class);
+
+        // Verify complete rollback
+        assertThat(orderRepository.count()).isZero();
+        assertThat(paymentRepository.count()).isZero();
+        assertThat(applicationEvents.stream(OrderCreatedEvent.class)).isEmpty();
     }
 
     @Test
     void createOrder_shouldRollbackTransaction_whenZeroQuantity() {
         // Arrange
-        Long customerId = 1L;
+        Long customerId = testUser.getId();
         List<CreateOrderItemRequest> items = List.of(
                 new CreateOrderItemRequest(product1.getId(), 0) // Zero quantity
         );
 
         // Act & Assert
-        // Note: This might not throw an exception depending on validation rules
-        // If validation is in place, it should throw a validation exception
-        // For now, we'll test the behavior as implemented
-        try {
-            Order result = orderService.createOrder(customerId, items, PaymentMethod.CARD);
-            // If no exception is thrown, verify the behavior
-            assertThat(result).isNotNull();
-            assertThat(result.getTotalAmount()).isEqualTo(0.0);
-        } catch (Exception e) {
-            // If an exception is thrown, verify rollback
-            assertThat(orderRepository.count()).isZero();
-            assertThat(paymentRepository.count()).isZero();
-            assertThat(applicationEvents.stream(OrderCreatedEvent.class)).isEmpty();
-        }
+        assertThatThrownBy(() -> orderService.createOrder(customerId, items, PaymentMethod.CARD))
+                .isInstanceOf(jakarta.validation.ConstraintViolationException.class);
+
+        // Verify complete rollback
+        assertThat(orderRepository.count()).isZero();
+        assertThat(paymentRepository.count()).isZero();
+        assertThat(applicationEvents.stream(OrderCreatedEvent.class)).isEmpty();
     }
 }

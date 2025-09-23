@@ -34,7 +34,9 @@ import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Entity
 @Table(
@@ -49,6 +51,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 @EntityListeners(AuditingEntityListener.class)
+@EqualsAndHashCode(exclude = {"payment", "items"})
+@ToString(exclude = {"payment", "items"})
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

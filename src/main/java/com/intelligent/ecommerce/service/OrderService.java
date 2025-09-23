@@ -27,6 +27,7 @@ import com.intelligent.ecommerce.repository.ProductRepository;
 import com.intelligent.ecommerce.repository.UserRepository;
 import com.intelligent.ecommerce.repository.projection.OrderReportRow;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 
@@ -48,7 +49,7 @@ public class OrderService {
     }
 
     @Transactional
-    public Order createOrder(Long customerId, List<CreateOrderItemRequest> rawItems, PaymentMethod paymentMethod) {
+    public Order createOrder(Long customerId, @Valid List<CreateOrderItemRequest> rawItems, PaymentMethod paymentMethod) {
 
         List<Long> productIds = rawItems.stream()
             .map(CreateOrderItemRequest::getProductId)
@@ -98,8 +99,6 @@ public class OrderService {
         order.setTotalAmount(totalAmount);
         order.setItems(items);
 
-        order = orderRepository.save(order);
-
         Payment payment = Payment.builder()
             .order(order)
             .amount(totalAmount)
@@ -107,7 +106,8 @@ public class OrderService {
             .paymentMethod(paymentMethod)
             .build();
 
-        paymentRepository.save(payment);
+        order.setPayment(payment);
+        order = orderRepository.save(order);
 
         eventPublisher.publishEvent(new OrderCreatedEvent(order.getId()));
 
