@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -29,6 +30,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<?>> handlePaymentFailed(PaymentFailedException ex, HttpServletRequest req) {
         return ResponseEntity
             .status(HttpStatus.PAYMENT_REQUIRED)
+            .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public ResponseEntity<ApiResponse<?>> handleUsernameNotFound(UsernameNotFoundException ex, HttpServletRequest req) {
+        return ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
             .body(ApiResponse.error(ex.getMessage()));
     }
 

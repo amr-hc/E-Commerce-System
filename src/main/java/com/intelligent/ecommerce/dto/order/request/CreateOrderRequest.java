@@ -11,8 +11,6 @@ import lombok.Data;
 
 @Data
 public class CreateOrderRequest {
-    @NotNull
-    private Long customerId;
 
     @NotNull
     private PaymentMethod paymentMethod;

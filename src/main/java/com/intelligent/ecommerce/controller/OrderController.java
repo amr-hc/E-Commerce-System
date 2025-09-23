@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,12 +17,12 @@ import org.springframework.web.bind.annotation.RestController;
 import com.intelligent.ecommerce.dto.common.ApiResponse;
 import com.intelligent.ecommerce.dto.common.PaginatedResponse;
 import com.intelligent.ecommerce.dto.order.request.CreateOrderRequest;
-import com.intelligent.ecommerce.dto.order.response.OrderReportResponse;
 import com.intelligent.ecommerce.dto.order.response.OrderResponse;
 import com.intelligent.ecommerce.entity.Order;
 import com.intelligent.ecommerce.mapper.OrderMapper;
 import com.intelligent.ecommerce.repository.projection.OrderReportRow;
 import com.intelligent.ecommerce.service.OrderService;
+import com.intelligent.ecommerce.utilities.AuthUtils;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ public class OrderController {
 
     private final OrderService orderService;
     private final OrderMapper orderMapper;
+    private final AuthUtils authUtils;
 
     @GetMapping
     public ResponseEntity<ApiResponse<PaginatedResponse<OrderResponse>>> listOrders(
@@ -51,10 +53,8 @@ public class OrderController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<OrderResponse>> createOrder(@Valid @RequestBody CreateOrderRequest createOrderRequest) {
-
-        Order created = orderService.createOrder(createOrderRequest.getCustomerId(), createOrderRequest.getItems(), createOrderRequest.getPaymentMethod());
-
+    public ResponseEntity<ApiResponse<OrderResponse>> createOrder(@Valid @RequestBody CreateOrderRequest createOrderRequest, Authentication authentication) {
+        Order created = orderService.createOrder(authUtils.getId(), createOrderRequest.getItems(), createOrderRequest.getPaymentMethod());
         return ResponseEntity.ok(ApiResponse.success(orderMapper.toDto(created)));
     }
 
