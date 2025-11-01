@@ -111,7 +111,26 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- <dependency>
+			<groupId>com.example</groupId>
+			<artifactId>mylib</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency> -->
+
+		<dependency>
+			<groupId>com.example</groupId>
+			<artifactId>mylib</artifactId>
+			<version>0.1.0</version>
+		</dependency>
 	</dependencies>
+
+	<repositories>
+		<repository>
+			<id>github</id>
+			<name>GitHub amr-hc Apache Maven Packages</name>
+			<url>https://maven.pkg.github.com/amr-hc/*</url>
+		</repository>
+	</repositories>
 
 	<build>
 		<plugins>

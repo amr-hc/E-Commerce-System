@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.mylib.printer.HiPrinter;
 import com.intelligent.ecommerce.dto.order.request.CreateOrderItemRequest;
 import com.intelligent.ecommerce.entity.Order;
 import com.intelligent.ecommerce.entity.OrderItem;
@@ -30,7 +31,6 @@ import com.intelligent.ecommerce.repository.projection.OrderReportRow;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-
 @Service
 @RequiredArgsConstructor
 public class OrderService {
@@ -45,6 +45,8 @@ public class OrderService {
     }
 
     public List<OrderReportRow> findHighValueOrders() {
+        HiPrinter h = new HiPrinter();
+        h.printHi();
         return orderRepository.findHighValueOrders();
     }
 
