@@ -2,6 +2,7 @@ package com.intelligent.ecommerce.controller;
 
 import java.util.List;
 
+import com.intelligent.ecommerce.service.VectorService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -33,6 +34,7 @@ import lombok.RequiredArgsConstructor;
 public class OrderController {
 
     private final OrderService orderService;
+    private final VectorService vectorService;
     private final OrderMapper orderMapper;
     private final AuthUtils authUtils;
 
@@ -56,6 +58,13 @@ public class OrderController {
     public ResponseEntity<ApiResponse<OrderResponse>> createOrder(@Valid @RequestBody CreateOrderRequest createOrderRequest, Authentication authentication) {
         Order created = orderService.createOrder(authUtils.getId(), createOrderRequest.getItems(), createOrderRequest.getPaymentMethod());
         return ResponseEntity.ok(ApiResponse.success(orderMapper.toDto(created)));
+    }
+
+    @GetMapping("/hi")
+    public ResponseEntity<ApiResponse<List<Double>>> highValueOrdersa() {
+//        List<OrderReportRow> orders  = orderService.findHighValueOrders();
+        List<Double> g = vectorService.embed("hiii");
+        return ResponseEntity.ok(ApiResponse.success(g));
     }
 
 }

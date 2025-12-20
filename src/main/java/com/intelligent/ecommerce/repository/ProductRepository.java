@@ -24,4 +24,18 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("select p from Product p where p.id in :ids order by p.id asc")
     List<Product> findAllForUpdateByIdIn(@Param("ids") List<Long> ids);
 
+    @Query(
+            value = """
+        SELECT *
+        FROM products
+        WHERE name_embedding IS NOT NULL
+        ORDER BY name_embedding <=> CAST(:queryVector AS vector)
+        LIMIT :limit
+        """,
+            nativeQuery = true
+    )
+    List<Product> searchByNameVector(@Param("queryVector") String queryVector,
+                                     @Param("limit") int limit);
+
+
 }

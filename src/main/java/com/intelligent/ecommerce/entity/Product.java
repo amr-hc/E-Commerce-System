@@ -43,4 +43,8 @@ public class Product {
     @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than zero")
     @Column(nullable = false)
     private BigDecimal price;
+
+    @Column(name = "name_embedding", columnDefinition = "vector(768)", insertable = false, updatable = false)
+    private String nameEmbedding;
+
 }
