@@ -1,15 +1,19 @@
 package com.intelligent.ecommerce.service;
 
-import com.intelligent.ecommerce.dto.product.CreateProductRequest;
-import com.intelligent.ecommerce.entity.Product;
-import com.intelligent.ecommerce.repository.ProductRepository;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.intelligent.ecommerce.dto.product.CreateProductRequest;
+import com.intelligent.ecommerce.entity.Product;
+import com.intelligent.ecommerce.repository.ProductRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +37,7 @@ public class ProductService {
     }
 
     @Transactional
+    @CacheEvict(value = "products", allEntries = true)
     public Product create(CreateProductRequest request) {
 
         // 1️⃣ create product normally
@@ -60,10 +65,12 @@ public class ProductService {
         return product;
     }
 
+    @Cacheable(value = "products")
     public List<Product> getAllProducts() {
         return productRepository.findAll();
     }
 
+    @Cacheable(value = "products", key = "#id", cacheManager = "longTtlCacheManager")
     public Product getProductById(Long id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
