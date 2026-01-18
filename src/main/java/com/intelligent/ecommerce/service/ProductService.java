@@ -65,7 +65,7 @@ public class ProductService {
         return product;
     }
 
-    @Cacheable(value = "products")
+    @Cacheable(value = "products", cacheManager = "caffeineCacheManager")
     public List<Product> getAllProducts() {
         return productRepository.findAll();
     }
